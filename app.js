@@ -22,7 +22,7 @@ app.use(cors());
 app.get("/:orderId", (req, res) => {
   if (!isNaN(req.params.orderId)) {
     db(connectionPool)
-      .select("SELECT * FROM link WHERE order_id = " + req.params.orderId)
+      .select("SELECT * FROM link WHERE order_id = ?", [req.params.orderId])
       .then((queryResult) => {
         res.send(queryResult);
       })
