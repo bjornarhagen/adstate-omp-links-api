@@ -1,9 +1,12 @@
-require("dotenv").config();
-const express = require("express");
-const mysql = require("mysql");
-const cors = require("cors");
+import dotenv from "dotenv";
+import express from "express";
+import { createPool } from "mysql";
+import cors from "cors";
+import { db } from "./db.js";
 
-const connectionPool = mysql.createPool({
+dotenv.config();
+
+const connectionPool = createPool({
   connectionLimit: 10,
   host: process.env.DB_HOST,
   user: process.env.DB_USERNAME,
@@ -16,40 +19,19 @@ const port = process.env.APP_PORT;
 
 app.use(cors());
 
-app.get("/", (req, res) => {
-  db(connectionPool)
-    .select("SELECT * FROM link")
-    .then((queryResult) => {
-      res.send(queryResult);
-    })
-    .catch(() => res.send("Error"));
+app.get("/:orderId", (req, res) => {
+  if (!isNaN(req.params.orderId)) {
+    db(connectionPool)
+      .select("SELECT * FROM link WHERE order_id = " + req.params.orderId)
+      .then((queryResult) => {
+        res.send(queryResult);
+      })
+      .catch(() => res.send("Error"));
+  } else {
+    res.status(422).json({ error: "Missing parameters" });
+  }
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+  console.log(`App started listening at http://localhost:${port}`);
 });
-
-const db = (connectionPool) => {
-  return {
-    select: (query) => {
-      return new Promise((resolve, reject) => {
-        try {
-          connectionPool.getConnection(function (err, connection) {
-            if (err) throw err;
-
-            connection.query(query, function (err, result) {
-              connection.release();
-              if (err) throw err;
-
-              resolve(result);
-            });
-          });
-        } catch (error) {
-          console.error("Error: " + error);
-          connection.release();
-          reject();
-        }
-      });
-    },
-  };
-};
